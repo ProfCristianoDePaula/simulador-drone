@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mini 4 Lab — Simulador RC 2</title>
 <style>
 :root{
@@ -290,6 +290,39 @@ progress{width:100%;height:10px;accent-color:#3bd7a2}
   .panel{padding:17px}
   .field{grid-template-columns:1fr;gap:7px}
 }
+
+#flightGeo{position:absolute;top:76px;left:50%;transform:translateX(-50%);max-width:75%;z-index:12;background:#122735c9;padding:3px 6px;border-radius:4px;font-size:10px;pointer-events:none;text-align:center}
+#flightCredit{position:absolute;bottom:0;right:0;z-index:12;font-size:9px;background:#122735d9;color:white;padding:1px 4px}
+.screen.mapFull #flightGeo,.screen.mapFull #flightCredit{display:none}
+#mapCredit{position:absolute;bottom:0;right:0;max-width:100%;font-size:9px;line-height:12px;background:#101b26dc;color:white;padding:2px 4px;z-index:9}
+#mapCaption{bottom:18px;max-width:95%;white-space:normal}
+@media (orientation:landscape) and (max-height:600px) and (max-width:1400px){
+ body{overflow:hidden}.wrap{padding:0;max-width:none;height:100dvh}
+ .top,.helpbar,.bottomHardware,.brand{display:none}
+ .controller{height:100dvh;border:0;border-radius:0;padding:0;background:#17232e}
+ .screen{position:absolute;inset:0 116px;height:auto;border:0;border-radius:0}
+ .hardware{display:contents}.stickBox{position:absolute;bottom:18px;width:112px;color:#dce8ee;font-size:9px;z-index:20}
+ .stickBox:first-child{left:env(safe-area-inset-left,0px)}.stickBox:last-child{right:env(safe-area-inset-right,0px)}
+ .stick{width:92px;height:92px}.knob{width:35px;height:35px;margin:-17.5px}
+ .centerHardware{position:absolute;left:5px;top:65px;width:104px;z-index:20}
+ .modeSwitch{margin:0 0 6px;padding:2px}.modeSwitch button{min-width:29px;padding:3px;min-height:32px}
+ .hardwareButtons{gap:6px}.hardwareButtons button{width:40px;height:40px;min-height:40px;font-size:12px}
+ .shoulders{position:absolute;inset:5px 5px auto;z-index:20;pointer-events:none}
+ .shoulders label{width:102px;font-size:9px;color:white;pointer-events:auto}
+ .hudTop{top:5px;left:5px;right:5px;gap:3px;flex-wrap:wrap;justify-content:start}
+ .hudTop button{font-size:10px;padding:3px 5px;min-height:30px}#status{width:100%;order:10;font-size:10px}
+ .hudLeft{top:78px;left:5px}.hudRight{top:78px;right:5px}
+ .hudLeft button,.hudRight button{min-height:32px;padding:4px;font-size:11px}
+ #recordButton{width:36px;height:36px;padding:3px}
+ .hudBottom{bottom:5px;left:5px;right:5px;gap:4px}.telemetry{font-size:10px;padding:4px;gap:6px}.telemetry b{font-size:14px}
+ #cameraInfo{font-size:9px;padding:3px}
+ #mapBox,.screen.mapFull #view3d{left:48px;bottom:65px;width:24%;height:25%}
+ .screen.mapFull #mapBox{inset:0;width:100%;height:100%}
+ #mapTools{top:76px;right:48px;flex-direction:row;gap:3px}#mapTools button{padding:4px;min-height:32px;font-size:11px}
+ #toast{bottom:65px;font-size:11px;max-width:85%}
+ dialog{max-height:94dvh;max-width:96vw}.panel{padding:12px}
+}
+
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
 </head>
@@ -298,9 +331,10 @@ progress{width:100%;height:10px;accent-color:#3bd7a2}
   <div class="top">
     <div>
       <h1>Mini 4 Lab · RC 2</h1>
-      <p>Simulador didático • cenário e mapa fictícios • nenhum comando enviado ao drone</p>
+      <p>Simulador didático • voo virtual sobre imagens de satélite • nenhum comando enviado ao drone</p>
     </div>
     <div class="actions">
+      <button data-act="locate">Minha localização</button>
       <button data-act="guide" class="primary">Guia 90 m / 500 m</button>
       <button data-act="panel:Ajuda">Como usar</button>
       <button data-act="reset">Reiniciar</button>
@@ -311,7 +345,7 @@ progress{width:100%;height:10px;accent-color:#3bd7a2}
     <div class="shoulders">
       <label>Dial esquerdo · inclinação do gimbal
         <input id="gimbal" aria-label="Inclinação do gimbal" type="range"
-               min="-90" max="60" value="-15">
+               min="-90" max="60" value="-45">
       </label>
       <label>Dial direito · zoom
         <input id="zoom" aria-label="Zoom da câmera" type="range"
@@ -354,13 +388,17 @@ progress{width:100%;height:10px;accent-color:#3bd7a2}
 
     <div id="screen" class="screen">
       <div id="view3d"></div>
+      <div id="flightGeo">Voo sobre satélite · aguardando GPS</div>
+      <a id="flightCredit" href="https://goto.arcgisonline.com/maps/World_Imagery" target="_blank" rel="noopener noreferrer">Esri · Vantor · Earthstar Geographics · GIS Community</a>
 
       <div id="mapBox">
         <canvas id="mapCanvas" aria-label="Mapa interativo da área de treinamento"></canvas>
-        <div id="mapCaption">MAPA FICTÍCIO · toque para ampliar</div>
+        <div id="mapCaption" role="status">Aguardando localização</div>
+        <a id="mapCredit" href="https://goto.arcgisonline.com/maps/World_Imagery" target="_blank" rel="noopener noreferrer">Imagem: Esri, Vantor, Earthstar Geographics e comunidade GIS</a>
         <div id="mapTools">
           <button data-act="map-in" aria-label="Aproximar mapa">＋</button>
           <button data-act="map-out" aria-label="Afastar mapa">−</button>
+          <button data-act="locate" title="Usar GPS do dispositivo">GPS</button>
           <button data-act="map-center" aria-label="Centralizar drone">◎</button>
           <button data-act="panel:Waypoints">WP</button>
         </div>
@@ -470,7 +508,7 @@ async function boot(){
   ];
   const S = {
     power:true,flying:false,crashed:false,paused:false,
-    x:0,z:0,h:0,yaw:0,gimbal:-15,zoom:1,speed:0,
+    x:0,z:0,h:0,yaw:0,gimbal:-45,zoom:1,speed:0,
     maxH:60,maxD:200,rthH:60,mode:"Normal",avoid:"Frear",
     light:"Dia",gps:"Bom",homeValid:true,homeX:0,homeZ:0,
     link:"Bom",lossAction:"RTH",lossHandled:false,
@@ -483,6 +521,58 @@ async function boot(){
     mapFull:false
   };
   const mapState = {cx:0,cz:0,scale:.7,follow:true,planning:false};
+  const geo = {origin:null,busy:false,message:"Aguardando GPS",tiles:new Map()};
+  function mapCaption(){
+    $("mapCaption").textContent=geo.origin
+      ? `SATÉLITE · GPS ±${Math.round(geo.origin.accuracy)} m · ${mapState.planning?"toque para criar pontos":"arraste / pinça"}`
+      : geo.message;
+  }
+  function locate(){
+    if(geo.busy)return;
+    if(S.flying){notify("Pouse antes de atualizar o ponto de partida.");return}
+    if(!window.isSecureContext){geo.message="GPS exige HTTPS ou localhost";mapCaption();notify(geo.message);return}
+    if(!navigator.geolocation){geo.message="GPS indisponível neste navegador";mapCaption();return}
+    geo.busy=true;geo.message="Obtendo localização…";mapCaption();
+    navigator.geolocation.getCurrentPosition(pos=>{
+      geo.busy=false;
+      if(S.flying){notify("Pouse e toque em GPS novamente para definir a origem.");return}
+      const {latitude:lat,longitude:lon,accuracy}=pos.coords;
+      if(Math.abs(lat)>85){geo.message="Localização fora da cobertura do mapa";mapCaption();return}
+      reset();geo.origin={lat,lon,accuracy};geo.tiles.clear();
+      mapState.follow=true;clearFlightTiles();swapView(false);mapCaption();
+      notify(`Ponto de partida definido pelo GPS (precisão ±${Math.round(accuracy)} m).`);
+    },error=>{
+      geo.busy=false;geo.message=({1:"GPS não autorizado. Permita a localização e toque em GPS.",2:"Localização indisponível. Ative o GPS e tente novamente.",3:"Tempo do GPS esgotado. Toque em GPS para tentar novamente."})[error.code]||"Falha no GPS";
+      mapCaption();notify(geo.message);
+    },{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+  }
+  function satellite(){
+    mc.fillStyle="#233440";mc.fillRect(0,0,mw,mh);
+    if(!geo.origin)return;
+    const {lat,lon}=geo.origin,cos=Math.cos(rad(lat));
+    const zoom=clamp(Math.round(Math.log2(156543.033928*cos*mapState.scale)),2,19);
+    const n=2**zoom,ppm=256*n/(40075016.68557849*cos),ratio=mapState.scale/ppm;
+    const ox=(lon+180)/360*n*256;
+    const oy=(1-Math.asinh(Math.tan(rad(lat)))/Math.PI)/2*n*256;
+    const cx=ox+mapState.cx*ppm,cy=oy+mapState.cz*ppm;
+    const left=cx-mw/(2*ratio),top=cy-mh/(2*ratio);
+    for(let y=Math.floor(top/256);y<=(top+mh/ratio)/256;y++){
+      if(y<0||y>=n)continue;
+      for(let x=Math.floor(left/256);x<=(left+mw/ratio)/256;x++){
+        const tx=((x%n)+n)%n,key=`${zoom}/${y}/${tx}`;
+        let tile=geo.tiles.get(key);
+        if(!tile){
+          tile={img:new Image(),ok:false,failed:false};geo.tiles.set(key,tile);
+          tile.img.onload=()=>{tile.ok=true};tile.img.onerror=()=>{tile.failed=true};
+          tile.img.src=`https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${key}`;
+        }
+        const px=(x*256-left)*ratio,py=(y*256-top)*ratio,size=256*ratio;
+        if(tile.ok)mc.drawImage(tile.img,px,py,size+.5,size+.5);
+        else {mc.fillStyle="#c6d6df";mc.font="11px system-ui";mc.textAlign="left";mc.fillText(tile.failed?"Imagem indisponível":"Carregando…",px+8,py+24)}
+      }
+    }
+    if(geo.tiles.size>256){for(const key of [...geo.tiles.keys()].slice(0,geo.tiles.size-192))geo.tiles.delete(key)}
+  }
   const axes = {left:{x:0,y:0},right:{x:0,y:0}};
   const keys = new Set();
   let toastTimer;
@@ -585,6 +675,7 @@ async function boot(){
   );
   ground.rotation.x=-Math.PI/2;
   scene.add(ground);
+  const trainingScenery=new THREE.Group();scene.add(trainingScenery);
 
   const obstacles=[];
   const materials = {
@@ -598,9 +689,9 @@ async function boot(){
       new THREE.MeshLambertMaterial({color})
     );
     body.position.set(x,h/2,z);
-    scene.add(body);
+    trainingScenery.add(body);
     const roof=new THREE.Mesh(new THREE.BoxGeometry(w+1,1,d+1),materials.roof);
-    roof.position.set(x,h+.5,z);scene.add(roof);
+    roof.position.set(x,h+.5,z);trainingScenery.add(roof);
     obstacles.push({x,z,w,d,h:h+1});
     surfaceRect(x,z,w,d,"#a28c77");
   }
@@ -615,9 +706,9 @@ async function boot(){
     if(Math.hypot(x,z)<60||Math.abs(z+120)<25||Math.abs(x-180)<25)continue;
     const h=7+rand()*7,r=2.7+rand()*2;
     const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.6,.9,h*.55,6),materials.trunk);
-    trunk.position.set(x,h*.275,z);scene.add(trunk);
+    trunk.position.set(x,h*.275,z);trainingScenery.add(trunk);
     const top=new THREE.Mesh(new THREE.ConeGeometry(r,h*.8,7),materials.leaf);
-    top.position.set(x,h*.65,z);scene.add(top);
+    top.position.set(x,h*.65,z);trainingScenery.add(top);
     obstacles.push({x,z,w:r*2,d:r*2,h:h*1.05});
     wc.beginPath();wc.fillStyle="#315f3e";
     wc.arc(x+800,z+800,r,0,Math.PI*2);wc.fill();
@@ -645,6 +736,75 @@ async function boot(){
     }
   }
   vehicle.position.set(80,0,-120);scene.add(vehicle);
+
+  // Local east/south metre coordinates share the minimap's Mercator origin.
+  const flightTiles=new Map(),flightGroup=new THREE.Group();scene.add(flightGroup);
+  let flightOrigin=null,flightQueue=[],flightActive=0,flightLast=-Infinity;
+  const flightLoader=new THREE.TextureLoader().setCrossOrigin("anonymous");
+  function geoPosition(x=S.x,z=S.z){
+    if(!geo.origin)return null;
+    const {lat,lon}=geo.origin,c=Math.cos(rad(lat)),R=6378137;
+    return {lat:deg(Math.atan(Math.sinh(Math.asinh(Math.tan(rad(lat)))-z/(R*c)))),
+      lon:((lon+deg(x/(R*c))+540)%360)-180};
+  }
+  function disposeFlightTile(tile){
+    tile.dead=true;
+    if(tile.mesh){flightGroup.remove(tile.mesh);tile.mesh.geometry.dispose();tile.mesh.material.dispose()}
+    if(tile.texture)tile.texture.dispose();
+  }
+  function clearFlightTiles(){
+    for(const tile of flightTiles.values())disposeFlightTile(tile);
+    flightTiles.clear();flightQueue=[];flightOrigin=geo.origin;flightLast=-Infinity;
+  }
+  function loadFlightQueue(){
+    while(flightActive<6&&flightQueue.length){
+      const tile=flightQueue.shift();if(tile.dead)continue;
+      flightActive++;
+      tile.texture=flightLoader.load(tile.url,texture=>{
+        flightActive--;
+        if(tile.dead){texture.dispose();loadFlightQueue();return}
+        texture.colorSpace=THREE.SRGBColorSpace;
+        texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+        const material=new THREE.MeshBasicMaterial({map:texture,toneMapped:false});
+        const mesh=new THREE.Mesh(new THREE.PlaneGeometry(tile.size,tile.size),material);
+        mesh.rotation.x=-Math.PI/2;
+        mesh.position.set(tile.x,tile.zoom===18?.025:0,tile.z);
+        tile.mesh=mesh;flightGroup.add(mesh);tile.ready=true;loadFlightQueue();
+      },undefined,()=>{flightActive--;tile.failed=true;loadFlightQueue()});
+    }
+  }
+  function updateFlightTerrain(now){
+    const live=!!geo.origin;
+    trainingScenery.visible=!live;ground.visible=!live;
+    // The orange training target is shown only while explicitly selected.
+    vehicle.visible=!live||S.selected;
+    if(!live){$("flightGeo").textContent="Cenário de treino · "+geo.message;return}
+    if(flightOrigin!==geo.origin)clearFlightTiles();
+    if(now-flightLast<250)return;flightLast=now;
+    const {lat,lon}=geo.origin,c=Math.cos(rad(lat)),keep=new Set(),pending=[];
+    // Broad coverage under detailed nearby tiles prevents blank gaps during flight.
+    for(const zoom of [15,18]){
+      const n=2**zoom,size=40075016.68557849*c/n;
+      const ox=(lon+180)/360*n,oy=(1-Math.asinh(Math.tan(rad(lat)))/Math.PI)/2*n;
+      const tx=Math.floor(ox+S.x/size),ty=Math.floor(oy+S.z/size);
+      for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){
+        const x=tx+dx,y=ty+dy;if(y<0||y>=n)continue;
+        const key=`${zoom}/${y}/${x}`;keep.add(key);
+        if(flightTiles.has(key))continue;
+        const tile={zoom,size,x:(x+.5-ox)*size,z:(y+.5-oy)*size,dead:false,
+          url:`https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${((x%n)+n)%n}`};
+        flightTiles.set(key,tile);pending.push(tile);
+      }
+    }
+    for(const [key,tile] of flightTiles)if(!keep.has(key)){disposeFlightTile(tile);flightTiles.delete(key)}
+    pending.sort((a,b)=>(a.zoom===15?-1:1)-(b.zoom===15?-1:1)||Math.hypot(a.x-S.x,a.z-S.z)-Math.hypot(b.x-S.x,b.z-S.z));
+    flightQueue.push(...pending);loadFlightQueue();
+    const p=geoPosition(),tiles=[...flightTiles.values()];
+    const ready=tiles.filter(t=>t.ready).length,failed=tiles.filter(t=>t.failed).length;
+    $("flightGeo").textContent=`${p.lat.toFixed(6)}, ${p.lon.toFixed(6)} · posição simulada`+
+      (!ready?(failed?" · imagens indisponíveis":" · carregando satélite…"):(failed?" · cobertura parcial":""));
+    scene.fog.near=600;scene.fog.far=2400;camera.far=3500;
+  }
 
   function resize3D(){
     const r=$("view3d").getBoundingClientRect();
@@ -693,9 +853,7 @@ async function boot(){
   function drawMap(){
     resizeMap();
     if(mapState.follow){mapState.cx=S.x;mapState.cz=S.z}
-    mc.fillStyle="#e2e8d8";mc.fillRect(0,0,mw,mh);
-    const origin=toMap(-800,-800);
-    mc.drawImage(worldCanvas,origin.x,origin.y,1600*mapState.scale,1600*mapState.scale);
+    satellite();
 
     const hp=toMap(S.homeX,S.homeZ);
     mc.strokeStyle="#087862";mc.lineWidth=1.5;mc.setLineDash([5,5]);
@@ -727,17 +885,17 @@ async function boot(){
     mc.textBaseline="middle";mc.fillText("H",hp.x,hp.y);
 
     const tp=toMap(vehicle.position.x,vehicle.position.z);
-    mc.fillStyle="#ff831e";mc.fillRect(tp.x-5,tp.y-4,10,8);
+    if(!geo.origin||S.selected){mc.fillStyle="#ff831e";mc.fillRect(tp.x-5,tp.y-4,10,8)}
     const dp=toMap(S.x,S.z);
     mc.save();mc.translate(dp.x,dp.y);mc.rotate(S.yaw);
     mc.beginPath();mc.moveTo(0,-12);mc.lineTo(8,9);mc.lineTo(0,5);mc.lineTo(-8,9);
     mc.closePath();mc.fillStyle="#0788c5";mc.fill();
     mc.strokeStyle="white";mc.lineWidth=2;mc.stroke();mc.restore();
-    mc.font="bold 12px Arial";mc.textAlign="left";mc.fillStyle="#173f33";
+    mc.font="bold 12px Arial";mc.textAlign="left";mc.fillStyle="#ffffff";
     mc.fillText("N ↑",10,S.mapFull?100:18);
     const meters=mapState.scale>1?20:mapState.scale>.3?50:100;
     const y=mh-27;
-    mc.strokeStyle="#193e34";mc.lineWidth=2;mc.beginPath();
+    mc.strokeStyle="#ffffff";mc.lineWidth=2;mc.beginPath();
     mc.moveTo(10,y);mc.lineTo(10+meters*mapState.scale,y);mc.stroke();
     mc.font="11px Arial";mc.fillText(meters+" m",10,y-7);
   }
@@ -810,9 +968,7 @@ async function boot(){
   function swapView(force){
     S.mapFull=typeof force==="boolean"?force:!S.mapFull;
     $("screen").classList.toggle("mapFull",S.mapFull);
-    $("mapCaption").textContent=S.mapFull?
-      (mapState.planning?"CLIQUE PARA ADICIONAR WAYPOINTS":"MAPA FICTÍCIO · arraste / zoom / pinça"):
-      "MAPA FICTÍCIO · toque para ampliar";
+    mapCaption();
     requestAnimationFrame(resize3D);
   }
 
@@ -1066,6 +1222,7 @@ async function boot(){
   }
 
   function obstacleAt(x,z,h,margin){
+    if(geo.origin)return undefined; // No invented collisions on real imagery.
     return obstacles.find(b=>
       Math.abs(x-b.x)<b.w/2+margin &&
       Math.abs(z-b.z)<b.d/2+margin && h<b.h+margin
@@ -1545,8 +1702,7 @@ async function boot(){
           Consulte as exigências aplicáveis e o acesso ao espaço aéreo.</p>
           <p>500 m é um limite configurado, não uma dispensa de contato visual.
           Relevo, região, firmware e condições podem exigir valores menores.</p>
-          <p>Geometria, texturas e mapa deste exercício são gerados pelo próprio código.
-          Não há capturas oficiais ou imagens de terceiros. Material independente,
+          <p>Com GPS, a câmera voa sobre imagens de satélite em perspectiva, carregadas conforme o deslocamento simulado. A superfície é plana: não reproduz relevo nem edifícios 3D do Google Earth. Sem GPS, permanece o cenário de treino fictício. O mapa usa imagens Esri World Imagery, com créditos no mapa. A localização do dispositivo define a origem; voo, alvo e rotas continuam simulados. O GPS exige permissão e HTTPS (ou localhost). As imagens precisam de internet e não são ao vivo. Material independente,
           sem vínculo com a DJI. Referências consultadas em 14/09/2026.</p>
           <p>Este arquivo não oferece autenticação de hospedagem. Aberto localmente,
           não publica um site. A biblioteca 3D é carregada de um CDN externo.</p>`;
@@ -1564,7 +1720,7 @@ async function boot(){
   function reset(){
     stopRecord();resetInputs();trail.length=0;
     Object.assign(S,{
-      x:0,z:0,h:0,yaw:0,gimbal:-15,zoom:1,speed:0,
+      x:0,z:0,h:0,yaw:0,gimbal:-45,zoom:1,speed:0,
       power:true,flying:false,crashed:false,paused:false,auto:null,
       battery:100,lowHandled:false,criticalHandled:false,
       link:"Bom",lossHandled:false,gps:"Bom",homeValid:true,
@@ -1572,7 +1728,7 @@ async function boot(){
     });
     vehicle.position.set(80,0,-120);
     mapState.cx=mapState.cz=0;mapState.follow=true;mapState.planning=false;
-    $("gimbal").value=-15;$("zoom").value=1;
+    $("gimbal").value=-45;$("zoom").value=1;
     notify("Simulação reiniciada. Seus ajustes de limites foram mantidos.");
   }
 
@@ -1593,6 +1749,7 @@ async function boot(){
         S.power=!S.power;notify(S.power?"Simulação ligada.":"Simulação desligada.");break;
       case "reset":reset();break;
       case "swap":swapView();break;
+      case "locate":locate();break;
       case "map-in":mapZoom(1.35);break;
       case "map-out":mapZoom(1/1.35);break;
       case "map-center":mapState.follow=true;break;
@@ -1710,6 +1867,7 @@ async function boot(){
       }
     }
     if(!S.flying)S.speed=0;
+    updateFlightTerrain(now);
     updateCamera();
     renderer.render(scene,camera);
     drawMap();
@@ -1718,6 +1876,8 @@ async function boot(){
   }
   $("boot").hidden=true;
   notify("Pronto. Clique em Decolar e use os manetes ou o teclado.");
+  swapView(false);
+  locate();
   requestAnimationFrame(frame);
 }
 
