@@ -252,7 +252,7 @@ dialog::backdrop{background:#02080dbb;backdrop-filter:blur(4px)}
 .card .row{justify-content:space-between}
 progress{width:100%;height:10px;accent-color:#3bd7a2}
 .sources a{display:block;padding:7px 0;font-size:14px}
-@media(max-width:760px){
+@media(max-width:760px) and (pointer:coarse){
   .wrap{padding:15px 8px 25px}
   .top{padding:0 8px;gap:12px}
   h1{font-size:21px}
@@ -296,7 +296,7 @@ progress{width:100%;height:10px;accent-color:#3bd7a2}
 .screen.mapFull #flightGeo,.screen.mapFull #flightCredit{display:none}
 #mapCredit{position:absolute;bottom:0;right:0;max-width:100%;font-size:9px;line-height:12px;background:#101b26dc;color:white;padding:2px 4px;z-index:9}
 #mapCaption{bottom:18px;max-width:95%;white-space:normal}
-@media (orientation:landscape) and (max-height:600px) and (max-width:1400px){
+@media (orientation:landscape) and (max-height:600px) and (max-width:1400px) and (pointer:coarse){
  body{overflow:hidden}.wrap{padding:0;max-width:none;height:100dvh}
  .top,.helpbar,.bottomHardware,.brand{display:none}
  .controller{height:100dvh;border:0;border-radius:0;padding:0;background:#17232e}
@@ -322,6 +322,29 @@ progress{width:100%;height:10px;accent-color:#3bd7a2}
  #toast{bottom:65px;font-size:11px;max-width:85%}
  dialog{max-height:94dvh;max-width:96vw}.panel{padding:12px}
 }
+
+
+/* Keep the complete desktop controller in one viewport, including short windows. */
+html.desktop-fit,html.desktop-fit body{width:100%;height:100%;overflow:hidden}
+.desktop-fit .wrap{
+  position:absolute;left:0;top:0;margin:0;
+  width:1220px;max-width:none;height:1040px;padding:16px 18px 10px;
+  display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:14px;
+  transform-origin:top left;
+}
+.desktop-fit .top{margin:0;flex-wrap:nowrap;gap:14px}
+.desktop-fit .top h1{font-size:25px}
+.desktop-fit .top p{font-size:13px}
+.desktop-fit .top .actions{flex-wrap:nowrap;gap:8px;flex-shrink:0}
+.desktop-fit .top button{font-size:14px;padding:9px 11px}
+.desktop-fit .controller{
+  min-height:0;display:flex;flex-direction:column;padding:16px 28px 18px;
+}
+.desktop-fit .shoulders,.desktop-fit .hardware,.desktop-fit .bottomHardware{flex-shrink:0}
+.desktop-fit .screen{flex:1 1 0;min-height:0;height:auto}
+.desktop-fit .helpbar{padding:4px;flex-wrap:nowrap;align-items:center;font-size:12px;gap:10px}
+.desktop-fit .helpbar .actions{flex-wrap:nowrap;flex-shrink:0}
+.desktop-fit .helpbar button{font-size:13px}
 
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
@@ -483,6 +506,26 @@ progress{width:100%;height:10px;accent-color:#3bd7a2}
   <div id="panel" class="panel"></div>
 </dialog>
 
+<script>
+// Independent of the 3D/CDN boot: fitting works even while resources load.
+(()=>{
+  const root=document.documentElement,wrap=document.querySelector('.wrap');
+  const desktop=matchMedia('(any-hover:hover) and (any-pointer:fine)');
+  function fitDesktop(){
+    root.classList.toggle('desktop-fit',desktop.matches);
+    if(!desktop.matches){wrap.style.transform='';wrap.style.left='';wrap.style.top='';return}
+    const width=document.documentElement.clientWidth,height=window.innerHeight;
+    const scale=Math.min(width/1220,height/1040);
+    wrap.style.transform=`scale(${scale})`;
+    wrap.style.left=`${Math.max(0,(width-1220*scale)/2)}px`;
+    wrap.style.top=`${Math.max(0,(height-1040*scale)/2)}px`;
+    window.dispatchEvent(new Event('desktopfit'));
+  }
+  window.addEventListener('resize',fitDesktop);
+  desktop.addEventListener('change',fitDesktop);
+  fitDesktop();
+})();
+</script>
 <script type="module">
 const $ = id => document.getElementById(id);
 let notify = text => {
@@ -813,6 +856,7 @@ async function boot(){
     camera.aspect=r.width/r.height;camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize3D).observe($("view3d"));
+  window.addEventListener("desktopfit",resize3D);
   resize3D();
 
   function updateCamera(){
@@ -982,7 +1026,8 @@ async function boot(){
       const len=Math.hypot(x,y);
       if(len>limit){x*=limit/len;y*=limit/len}
       axes[side].x=x/limit;axes[side].y=-y/limit;
-      knob.style.transform=`translate(${x}px,${y}px)`;
+      const visualScale=r.width/el.offsetWidth;
+      knob.style.transform=`translate(${x/visualScale}px,${y/visualScale}px)`;
     }
     el.addEventListener("pointerdown",e=>{
       if(pointerId!==null)return;
