@@ -358,7 +358,7 @@ html.desktop-fit,html.desktop-fit body{width:100%;height:100%;overflow:hidden}
     </div>
     <div class="actions">
       <button data-act="locate">Minha localização</button>
-      <button data-act="guide" class="primary">Guia 90 m / 500 m</button>
+      <button data-act="guide" class="primary">Guia 200 m / 20 km</button>
       <button data-act="panel:Ajuda">Como usar</button>
       <button data-act="reset">Reiniciar</button>
     </div>
@@ -552,7 +552,7 @@ async function boot(){
   const S = {
     power:true,flying:false,crashed:false,paused:false,
     x:0,z:0,h:0,yaw:0,gimbal:-45,zoom:1,speed:0,
-    maxH:60,maxD:200,rthH:60,mode:"Normal",avoid:"Frear",
+    maxH:200,maxD:20000,rthH:60,mode:"Normal",avoid:"Frear",
     light:"Dia",gps:"Bom",homeValid:true,homeX:0,homeZ:0,
     link:"Bom",lossAction:"RTH",lossHandled:false,
     battery:100,lowHandled:false,criticalHandled:false,
@@ -637,10 +637,10 @@ async function boot(){
   function effectiveH(){
     return Math.min(S.maxH,
       S.scenario==="Teto local 60 m"?60:
-      S.scenario==="Restrição de firmware 30 m"?30:120);
+      S.scenario==="Restrição de firmware 30 m"?30:200);
   }
   function effectiveD(){
-    return Math.min(S.maxD,S.scenario==="Visibilidade 200 m"?200:1000);
+    return Math.min(S.maxD,S.scenario==="Visibilidade 200 m"?200:20000);
   }
   function sensorsAvailable(){
     return S.mode!=="Sport" && S.light==="Dia" && S.avoid!=="Desligado";
@@ -1496,8 +1496,8 @@ async function boot(){
   function guideReady(){
     if(S.guide===0)return S.checks[0];
     if(S.guide===1)return S.safetyVisited;
-    if(S.guide===2)return S.maxH===90;
-    if(S.guide===3)return S.maxD===500;
+    if(S.guide===2)return S.maxH===200;
+    if(S.guide===3)return S.maxD===20000;
     if(S.guide===4)return S.checks[1]&&S.checks[2];
     return true;
   }
@@ -1506,7 +1506,7 @@ async function boot(){
       ${S.checks[i]?"checked":""}>${text}</label>`;
   }
   function guideHtml(){
-    if(S.guide<0)return `<h2>90 m de altura e 500 m de distância</h2>
+    if(S.guide<0)return `<h2>200 m de altura e 20 km de distância</h2>
       <p>O guia acompanha os mesmos valores usados pela simulação.</p>${B("Iniciar guia","guide",'class="primary"')}`;
     const names=["Preparar","Abrir Safety","Altura","Distância","Revisar"];
     let html=`<progress value="${S.guide}" max="5"></progress>
@@ -1520,18 +1520,18 @@ async function boot(){
       <p>Abra Safety neste simulador e depois retorne à aba Guia.</p>
       ${B("Abrir Safety","panel:Safety")}
       <p>${S.safetyVisited?"Safety já foi aberto.":"Aguardando você abrir Safety."}</p>`;
-    if(S.guide===2)html+=`<p>Ajuste Max Altitude para 90 m.
+    if(S.guide===2)html+=`<p>Ajuste Max Altitude para 200 m.
       No RC 2 real, confirme a edição conforme solicitado.</p>
-      ${field("Altura máxima (m)","maxH",20,120)}`;
-    if(S.guide===3)html+=`<p>Ajuste Max Distance para 500 m.
+      ${field("Altura máxima (m)","maxH",20,200)}`;
+    if(S.guide===3)html+=`<p>Ajuste Max Distance para 20.000 m (20 km).
       Não escolha distância ilimitada.</p>
-      ${field("Distância máxima (m)","maxD",50,1000)}`;
+      ${field("Distância máxima (m)","maxD",50,20000)}`;
     if(S.guide===4)html+=`${choice("Cenário didático","scenario",
       ["Normal","Teto local 60 m","Visibilidade 200 m","Restrição de firmware 30 m"])}
       <div class="note">Limites efetivos neste cenário: ${effectiveH()} m / ${effectiveD()} m.
       Os valores reduzidos são exemplos fictícios, não regras regionais.</div>
       ${guideCheck(1,"Vou revisar Home Point, RTH, sensores e bateria no equipamento.")}
-      ${guideCheck(2,"Entendo que 90 m / 500 m podem não ser permitidos no local.")}`;
+      ${guideCheck(2,"Entendo que 200 m / 20 km podem não ser permitidos no local.")}`;
     if(S.guide===5)html+=`<div class="note">
       Valores configurados: <strong>${S.maxH} m / ${S.maxD} m</strong>.<br>
       Limites aplicados no cenário: <strong>${effectiveH()} m / ${effectiveD()} m</strong>.
@@ -1554,8 +1554,8 @@ async function boot(){
     switch(S.panel){
       case "Safety":
         html=`<h2>Proteção de voo</h2>
-          ${field("Max Altitude · altura máxima (m)","maxH",20,120)}
-          ${field("Max Distance · distância máxima (m)","maxD",50,1000)}
+          ${field("Max Altitude · altura máxima (m)","maxH",20,200)}
+          ${field("Max Distance · distância máxima (m)","maxD",50,20000)}
           ${choice("Resposta a obstáculos","avoid",["Frear","Desviar","Desligado"])}
           ${choice("Cenário de limites","scenario",
             ["Normal","Teto local 60 m","Visibilidade 200 m","Restrição de firmware 30 m"])}
@@ -1605,7 +1605,7 @@ async function boot(){
         break;
       case "RTH":
         html=`<h2>Retorno à origem</h2>
-          ${field("Altura de RTH (m)","rthH",20,120)}
+          ${field("Altura de RTH (m)","rthH",20,200)}
           <p>O exercício sobe, retorna ao Home Point e pousa.
           Essa sequência é simplificada; o Advanced RTH real pode adaptar a rota.</p>
           <div class="note ${S.rthH>effectiveH()?"warning":""}">
@@ -1685,7 +1685,7 @@ async function boot(){
         break;
       case "Waypoints":
         html=`<h2>Planejar rota no mapa</h2>
-          ${field("Altura dos novos pontos (m)","wpHeight",5,120)}
+          ${field("Altura dos novos pontos (m)","wpHeight",5,200)}
           <div class="row">
             ${B(mapState.planning?"Continuar adicionando pontos":"Adicionar pontos no mapa","plan")}
             ${B("Parar edição do mapa","stop-plan")}
@@ -1721,7 +1721,7 @@ async function boot(){
             <li>Use W/S para altura; A/D para giro; setas para deslocamento.</li>
             <li>Ou arraste os dois manetes, inclusive com dois dedos no celular.</li>
             <li>Use o dial para inclinar a câmera. O mapa acompanha o drone.</li>
-            <li>Abra ••• para Safety e o guia de 90 m / 500 m.</li>
+            <li>Abra ••• para Safety e o guia de 200 m / 20 km.</li>
             <li>Use RTH para voltar e pousar. Espaço pausa o exercício.</li>
           </ol>
           <p>O voo pausa durante menus e ao sair da janela. Clique em Retomar ao voltar.
@@ -1743,9 +1743,10 @@ async function boot(){
             <a href="https://threejs.org/" target="_blank" rel="noreferrer">Three.js — biblioteca sob licença MIT</a>
           </div>
           <p>A Resolução ANAC 806/2026 prevê 120 m acima do solo para operações
-          em seu escopo. Configurar 90 m não autoriza automaticamente o voo.
+          em seu escopo. Configurar 200 m ou 20 km na simulação não autoriza
+          automaticamente o voo.
           Consulte as exigências aplicáveis e o acesso ao espaço aéreo.</p>
-          <p>500 m é um limite configurado, não uma dispensa de contato visual.
+          <p>20 km (20.000 m) é um limite configurado, não uma dispensa de contato visual.
           Relevo, região, firmware e condições podem exigir valores menores.</p>
           <p>Com GPS, a câmera voa sobre imagens de satélite em perspectiva, carregadas conforme o deslocamento simulado. A superfície é plana: não reproduz relevo nem edifícios 3D do Google Earth. Sem GPS, permanece o cenário de treino fictício. O mapa usa imagens Esri World Imagery, com créditos no mapa. A localização do dispositivo define a origem; voo, alvo e rotas continuam simulados. O GPS exige permissão e HTTPS (ou localhost). As imagens precisam de internet e não são ao vivo. Material independente,
           sem vínculo com a DJI. Referências consultadas em 14/09/2026.</p>
